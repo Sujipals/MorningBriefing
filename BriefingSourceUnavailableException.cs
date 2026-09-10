@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MorningBriefing
+public class BriefingSourceUnavailableException : Exception
 {
-    internal class BriefingSourceUnavailableException
+    public BriefingSourceUnavailableException(string message)
+        : base(message)
     {
     }
 }

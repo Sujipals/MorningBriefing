@@ -1,19 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 class Program
 {
-
     static async Task Main(string[] args)
     {
-        // Create the three briefing sources
+        // Create the three normal briefing sources
         IBriefingSource weather = new WeatherSource();
         IBriefingSource news = new NewsSource();
         IBriefingSource traffic = new TrafficSource();
+
+        // Create the traffic camera source
+        IBriefingSource trafficCamera = new TrafficCameraSource();
 
         // -----------------------------------------
         // SEQUENTIAL EXECUTION
@@ -21,7 +20,6 @@ class Program
 
         Stopwatch sequentialStopwatch = Stopwatch.StartNew();
 
-        // Each operation must finish before the next one starts
         string weatherInfo = await weather.GetInfoAsync();
         string newsInfo = await news.GetInfoAsync();
         string trafficInfo = await traffic.GetInfoAsync();
@@ -34,15 +32,14 @@ class Program
 
         Stopwatch concurrentStopwatch = Stopwatch.StartNew();
 
-        // Start all three operations immediately
+        // Start all three normal sources at the same time
         Task<string> weatherTask = weather.GetInfoAsync();
         Task<string> newsTask = news.GetInfoAsync();
         Task<string> trafficTask = traffic.GetInfoAsync();
 
-        // Wait for all three operations to finish
+        // Wait for all three to finish
         await Task.WhenAll(weatherTask, newsTask, trafficTask);
 
-        // Get the results
         string weatherInfoConcurrent = await weatherTask;
         string newsInfoConcurrent = await newsTask;
         string trafficInfoConcurrent = await trafficTask;
@@ -50,7 +47,7 @@ class Program
         concurrentStopwatch.Stop();
 
         // -----------------------------------------
-        // DISPLAY RESULTS
+        // DISPLAY NORMAL BRIEFING
         // -----------------------------------------
 
         Console.WriteLine("=================================");
@@ -62,6 +59,38 @@ class Program
         Console.WriteLine(newsInfoConcurrent);
         Console.WriteLine(trafficInfoConcurrent);
 
+        // -----------------------------------------
+        // TRAFFIC CAMERA
+        // -----------------------------------------
+
+        Console.WriteLine();
+        Console.WriteLine("=================================");
+        Console.WriteLine("        TRAFFIC CAMERA");
+        Console.WriteLine("=================================");
+
+        try
+        {
+            // Try to get information from the camera
+            string cameraInfo = await trafficCamera.GetInfoAsync();
+
+            // If successful, display the information
+            Console.WriteLine(cameraInfo);
+        }
+        catch (BriefingSourceUnavailableException ex)
+        {
+            // Handle the camera failure without crashing
+            Console.WriteLine("Traffic camera unavailable:");
+            Console.WriteLine(ex.Message);
+        }
+
+        // -----------------------------------------
+        // TIME COMPARISON
+        // -----------------------------------------
+
+        long savedMilliseconds =
+            sequentialStopwatch.ElapsedMilliseconds -
+            concurrentStopwatch.ElapsedMilliseconds;
+
         Console.WriteLine();
         Console.WriteLine("=================================");
         Console.WriteLine("          TIME COMPARISON");
@@ -72,11 +101,6 @@ class Program
 
         Console.WriteLine(
             $"Concurrent time:  {concurrentStopwatch.ElapsedMilliseconds} ms");
-
-        // Calculate how much time was saved
-        long savedMilliseconds =
-            sequentialStopwatch.ElapsedMilliseconds -
-            concurrentStopwatch.ElapsedMilliseconds;
 
         Console.WriteLine(
             $"Time saved:       {savedMilliseconds} ms");

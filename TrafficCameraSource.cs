@@ -1,12 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace MorningBriefing
+public class TrafficCameraSource : IBriefingSource
 {
-    internal class TrafficCameraSource
+    private static Random random = new Random();
+
+    public async Task<string> GetInfoAsync()
     {
+        // Simulate a slow traffic camera
+        await Task.Delay(1200);
+
+        // 50% chance of failure
+        if (random.Next(2) == 0)
+        {
+            throw new BriefingSourceUnavailableException(
+                "Traffic camera is currently unavailable.");
+        }
+
+        return "Traffic Camera: Traffic cameras are working normally.";
     }
 }
