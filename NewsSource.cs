@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 public class NewsSource : IBriefingSource
 {
-    public async Task<string> GetInfoAsync()
+    public async Task<string> GetInfoAsync(CancellationToken cancellationToken)
     {
-        await Task.Delay(1000);
+        await Task.Delay(1000, cancellationToken);
 
         return "News: New technology developments today.";
     }

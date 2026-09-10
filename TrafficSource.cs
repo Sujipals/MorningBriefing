@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 public class TrafficSource : IBriefingSource
 {
-    public async Task<string> GetInfoAsync()
+    public async Task<string> GetInfoAsync(CancellationToken cancellationToken)
     {
-        await Task.Delay(800);
+        await Task.Delay(800, cancellationToken);
 
         return "Traffic: Moderate traffic in Copenhagen.";
     }

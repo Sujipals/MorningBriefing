@@ -1,110 +1,99 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 class Program
 {
     static async Task Main(string[] args)
     {
-        // Create the three normal briefing sources
+        // Create the briefing sources
         IBriefingSource weather = new WeatherSource();
         IBriefingSource news = new NewsSource();
         IBriefingSource traffic = new TrafficSource();
-
-        // Create the traffic camera source
         IBriefingSource trafficCamera = new TrafficCameraSource();
 
-        // -----------------------------------------
-        // SEQUENTIAL EXECUTION
-        // -----------------------------------------
+        // Create a cancellation token source
+        CancellationTokenSource cancellationTokenSource =
+            new CancellationTokenSource();
 
-        Stopwatch sequentialStopwatch = Stopwatch.StartNew();
+        // Cancel all operations after 1200 milliseconds
+        cancellationTokenSource.CancelAfter(1200);
 
-        string weatherInfo = await weather.GetInfoAsync();
-        string newsInfo = await news.GetInfoAsync();
-        string trafficInfo = await traffic.GetInfoAsync();
-
-        sequentialStopwatch.Stop();
-
-        // -----------------------------------------
-        // CONCURRENT EXECUTION
-        // -----------------------------------------
-
-        Stopwatch concurrentStopwatch = Stopwatch.StartNew();
-
-        // Start all three normal sources at the same time
-        Task<string> weatherTask = weather.GetInfoAsync();
-        Task<string> newsTask = news.GetInfoAsync();
-        Task<string> trafficTask = traffic.GetInfoAsync();
-
-        // Wait for all three to finish
-        await Task.WhenAll(weatherTask, newsTask, trafficTask);
-
-        string weatherInfoConcurrent = await weatherTask;
-        string newsInfoConcurrent = await newsTask;
-        string trafficInfoConcurrent = await trafficTask;
-
-        concurrentStopwatch.Stop();
-
-        // -----------------------------------------
-        // DISPLAY NORMAL BRIEFING
-        // -----------------------------------------
+        // Get the cancellation token
+        CancellationToken cancellationToken =
+            cancellationTokenSource.Token;
 
         Console.WriteLine("=================================");
         Console.WriteLine("       MORNING BRIEFING");
         Console.WriteLine("=================================");
         Console.WriteLine();
 
-        Console.WriteLine(weatherInfoConcurrent);
-        Console.WriteLine(newsInfoConcurrent);
-        Console.WriteLine(trafficInfoConcurrent);
+        try
+        {
+            // Start all three normal sources
+            Task<string> weatherTask =
+                weather.GetInfoAsync(cancellationToken);
 
-        // -----------------------------------------
-        // TRAFFIC CAMERA
-        // -----------------------------------------
+            Task<string> newsTask =
+                news.GetInfoAsync(cancellationToken);
+
+            Task<string> trafficTask =
+                traffic.GetInfoAsync(cancellationToken);
+
+            // Wait for all three operations
+            await Task.WhenAll(
+                weatherTask,
+                newsTask,
+                trafficTask);
+
+            // Display the results
+            Console.WriteLine(await weatherTask);
+            Console.WriteLine(await newsTask);
+            Console.WriteLine(await trafficTask);
+        }
+        catch (OperationCanceledException)
+        {
+            // Handle cancellation without crashing
+            Console.WriteLine("Briefing was cancelled.");
+        }
 
         Console.WriteLine();
         Console.WriteLine("=================================");
         Console.WriteLine("        TRAFFIC CAMERA");
         Console.WriteLine("=================================");
 
+        // Create a new token source for the camera
+        CancellationTokenSource cameraCancellation =
+            new CancellationTokenSource();
+
+        // Cancel the camera after 1200 milliseconds
+        cameraCancellation.CancelAfter(1200);
+
         try
         {
-            // Try to get information from the camera
-            string cameraInfo = await trafficCamera.GetInfoAsync();
+            // Camera needs 2000 ms, but cancellation happens
+            // after 1200 ms
+            string cameraInfo =
+                await trafficCamera.GetInfoAsync(
+                    cameraCancellation.Token);
 
-            // If successful, display the information
             Console.WriteLine(cameraInfo);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine(
+                "Traffic camera operation was cancelled after 1200 ms.");
         }
         catch (BriefingSourceUnavailableException ex)
         {
-            // Handle the camera failure without crashing
             Console.WriteLine("Traffic camera unavailable:");
             Console.WriteLine(ex.Message);
         }
 
-        // -----------------------------------------
-        // TIME COMPARISON
-        // -----------------------------------------
-
-        long savedMilliseconds =
-            sequentialStopwatch.ElapsedMilliseconds -
-            concurrentStopwatch.ElapsedMilliseconds;
-
         Console.WriteLine();
         Console.WriteLine("=================================");
-        Console.WriteLine("          TIME COMPARISON");
+        Console.WriteLine("       PROGRAM FINISHED");
         Console.WriteLine("=================================");
-
-        Console.WriteLine(
-            $"Sequential time:  {sequentialStopwatch.ElapsedMilliseconds} ms");
-
-        Console.WriteLine(
-            $"Concurrent time:  {concurrentStopwatch.ElapsedMilliseconds} ms");
-
-        Console.WriteLine(
-            $"Time saved:       {savedMilliseconds} ms");
-
-        Console.WriteLine();
     }
 }
