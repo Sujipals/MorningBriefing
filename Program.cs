@@ -17,22 +17,28 @@ class Program
         // Start the stopwatch
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        // Wait for weather to finish
-        string weatherInfo = await weather.GetInfoAsync();
+        // Start all three operations at the same time
+        Task<string> weatherTask = weather.GetInfoAsync();
+        Task<string> newsTask = news.GetInfoAsync();
+        Task<string> trafficTask = traffic.GetInfoAsync();
+
+        // Wait until all three operations have finished
+        await Task.WhenAll(weatherTask, newsTask, trafficTask);
+
+        // Get the results
+        string weatherInfo = await weatherTask;
+        string newsInfo = await newsTask;
+        string trafficInfo = await trafficTask;
+
+        // Display the results
         Console.WriteLine(weatherInfo);
-
-        // Wait for news to finish
-        string newsInfo = await news.GetInfoAsync();
         Console.WriteLine(newsInfo);
-
-        // Wait for traffic to finish
-        string trafficInfo = await traffic.GetInfoAsync();
         Console.WriteLine(trafficInfo);
 
         // Stop the stopwatch
         stopwatch.Stop();
 
         Console.WriteLine();
-        Console.WriteLine($"Sequential time: {stopwatch.ElapsedMilliseconds} ms");
+        Console.WriteLine($"Concurrent time: {stopwatch.ElapsedMilliseconds} ms");
     }
 }
